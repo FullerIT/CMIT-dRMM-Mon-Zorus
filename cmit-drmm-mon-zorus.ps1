@@ -1,15 +1,18 @@
 <# Mon-ZorusAgent.ps1
 pellis@cmitsolutions.com
-2025-12-29-001
+2026-02-10-001
 
 Zorus Archon Agent Endpoint Monitor
+Changelog: Fixed things, typo and status field. Adapted to dRMM better.
 
 #>
 
 
 # Monitor Options
-$AlertOnUserDisable="true"
-$AlertOnServiceMissing="false"
+$AlertOnUserDisable=$true # Default
+$AlertOnServiceMissing=$true # Default
+$AlertOnUserDisable=$Env:AlertOnUserDisable
+$AlertOnServiceMissing=$Env:AlertOnServiceMissing
 
 # Set default states
 $alert=$false
@@ -30,7 +33,7 @@ $ZorusService=Get-Service -Name ZorusDeploymentService -ErrorAction SilentlyCont
 if ($null -eq $ZorusService){
     write-host "- Zorus service is not present. Software does not appear to be installed."
     $Status="Not installed"
-    if ($AlertonServiceMissing -eq $true){
+    if ($AlertOnServiceMissing -eq $true){
         $alert=$true
     }
 } else {
@@ -65,7 +68,7 @@ if ($null -eq $ZorusService){
         $ValidCredentials=$AgentReg.ValidCredentials
         if ($ValidCredentials -ne 1){
             write-host "! Zorus agent does not have valid credentials to communicate with the platform. Please verify installation."
-            write-host "  This can occur if the endpoint is deleted from the platform without uninstalling the agent."
+            write-host "  This can occur if the endpoint is deleted from the platform without uninstalling the agent, or there is a mismatch, remove software and agent in platform and retry."
             $Status='Invalid Credentials'
             $alert=$true
         }
@@ -265,7 +268,7 @@ if ($null -eq $ZorusService){
 
 write-host '<-End Diagnostic->'
 write-host '<-Start Result->'
-write-host "Zorus=$Status"
+write-host "STATUS=$Status"
 write-host '<-End Result->'
 if ($alert){
     exit 1
