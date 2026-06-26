@@ -1,12 +1,15 @@
-<# Mon-ZorusAgent.ps1
-pellis@cmitsolutions.com
-2026-02-10-001
-
-Zorus Archon Agent Endpoint Monitor
-Changelog: Fixed things, typo and status field. Adapted to dRMM better.
+<#
+Script:        Mon-ZorusAgent.ps1
+Author:        pellis@cmitsolutions.com
+Version:       2026.06.26.001
+Description:   Zorus Archon Agent Endpoint Monitor
+Last Modified: 2026.06.26
+Change Log:
+  2026.06.26.001 - Removed 'no internet' as a triggered failure
+  2026.02.10.002 - Fixed things, typo and status field. Adapted to dRMM better.
+  2026.02.10.001 - First version
 
 #>
-
 
 # Monitor Options
 $AlertOnUserDisable=$true # Default
@@ -100,25 +103,34 @@ if ($null -eq $ZorusService){
             write-host "- Zorus version is greater than 4.5.0.0. Current version is $ProductVersion."
         }
     }
+    
+    #Health states to ignore, we only want trigger remediation [reinstall] on status that makes sense to reinstall for
+    $NonAlertStates = @(  
+        'Agent disabled locally',
+        'No internet connection.'
+    )
 
-    if (!($alert)){
+    if (!($Alert)){
         # Check Agent Health State
         if ($AgentInfoReg.AgentHealthState -ne 0){
-            $ErrorDetails=$AgentInfoReg.ErrorDetails
-            if ($ErrorDetails -ne 'Agent disabled locally'){
-                # The 'Agent disabled locally' state is not one that will create an alert at this juncture.
-                write-host "! Zorus agent health state indicates error. Error message: $ErrorDetails."
-                $Status=$ErrorDetails
-                $Alert=$true
+            $ErrorDetails = $AgentInfoReg.ErrorDetails
+
+            if ($ErrorDetails -notin $NonAlertStates){
+                # These states will trigger an alert
+                Write-Host "! Zorus agent health state indicates error. Error message: $ErrorDetails."
+                $Status = $ErrorDetails
+                $Alert = $true
             }
             else {
-                write-host "- Zorus agent health state shows good."
+                # Allowed non-alert states (still visible)
+                Write-Host "- Zorus agent health state (non-alert): $ErrorDetails"
             }
         }
         else {
-            write-host "- Zorus agent health state shows good."
+            Write-Host "- Zorus agent health state shows good."
         }
     }
+
 
     if (!($alert)) {
         # Detect agent removed from portal based on LastSeen vs LastUpdateAttempt
